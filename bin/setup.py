@@ -2,12 +2,16 @@
 from sys import exit
 import click
 from os.path import dirname
-condiment_dir = "{{condiment_dir}}"
-if condiment_dir[0] == "{":
-    condiment_dir = dirname(dirname(__file__))
-default_prefix = "{{condiment_prefix}}"
-if default_prefix[0] == "{":
-    default_prefix = dirname(condiment_dir)
+
+## Define CONDIMENT_DIR via template or setting it up for when running before
+## templated
+CONDIMENT_DIR = "{{condiment_dir}}"
+if CONDIMENT_DIR[0] == "{":
+    CONDIMENT_DIR = dirname(dirname(__file__))
+
+DEFAULT_PREFIX = "{{condiment_prefix}}"
+if DEFAULT_PREFIX[0] == "{":
+    DEFAULT_PREFIX = dirname(CONDIMENT_DIR)
 
 
 def _options(prefix):
@@ -20,7 +24,7 @@ def cli():
     pass
 
 
-def get_pillar(prefix=default_prefix, item=None):
+def get_pillar(prefix=DEFAULT_PREFIX, item=None):
     import salt.client
     import salt.config
     __opts__ = salt.config.minion_config(str(_options(prefix)))
@@ -86,17 +90,14 @@ def run_command(prefix, command, *states, **kwargs):
 
 
 @cli.command(help="link modules and friends to prefix")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def server_hierarchy(prefix):
     from py.path import local
     srv = local(prefix).join('build', 'srv', 'salt')
     srv.ensure(dir=True)
-    if not srv.join('_states').exists():
-        srv.join('_states').mksymlinkto(local(condiment_dir).join('_states'))
-    if not srv.join('_modules').exists():
-        srv.join('_modules').mksymlinkto(local(condiment_dir).join('_modules'))
-    if not srv.join('_grains').exists():
-        srv.join('_grains').mksymlinkto(local(condiment_dir).join('_grains'))
+    for directory in ['_states', '_modules', '_grains']:
+        if not srv.join(directory).exists():
+            srv.join(directory).mksymlinkto(local(CONDIMENT_DIR).join(directory))
 
     local(prefix).join('build', 'etc', 'salt').ensure(dir=True)
     local(prefix).join('build', 'var', 'log', 'salt').ensure(dir=True)
@@ -105,7 +106,7 @@ def server_hierarchy(prefix):
 
 
 @cli.command(help="Overwrites default salt paths")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def syspath(prefix):
     from py.path import local
     from salt import __file__ as saltfile
@@ -129,7 +130,7 @@ def syspath(prefix):
 
 
 @cli.command(help="Adds minion configuration file")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 @click.option('--user', envvar='USER', help="Default user")
 @click.option('--sudo_user', envvar='USER', help="Default sudo user")
 def minion(prefix, user, sudo_user):
@@ -156,7 +157,7 @@ def minion(prefix, user, sudo_user):
 
 
 @cli.command(help="Add pillar with condiment station stuff")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 @click.option('--user', envvar='USER', help="Default user")
 def pillar(prefix, user):
     from sys import executable
@@ -170,13 +171,13 @@ def pillar(prefix, user):
         'condiment_dir: {condiment}\n'
         'condiment_python: {executable}\n'
         'condiment_build_dir: {prefix}/build\n'.format(
-            condiment=condiment_dir, user=user, prefix=prefix,
+            condiment=CONDIMENT_DIR, user=user, prefix=prefix,
             executable=executable)
     )
 
 
 @cli.command(help="Add main repo")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 @click.option('--repo', required=True, nargs=1)
 @click.option('--branch', default="master", nargs=1)
 @click.option('--subdir', default="black-garlic", nargs=1)
@@ -188,13 +189,13 @@ def blackgarlic(prefix, repo, branch, subdir):
 
 
 @cli.command(help="Runs bootstrap states")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def initial_states(prefix):
     run_command(prefix, "state.sls", 'brew-cask', 'salt')
 
 
 @cli.command(help="Sync states and modules")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def sync(prefix):
     run_command(prefix, 'saltutil.sync_all', minimize=False)
 

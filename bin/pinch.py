@@ -1,12 +1,11 @@
 #! {{condiment_python}}
-from py.path import local
 import click
 import setup
 
-default_prefix = setup.default_prefix
+DEFAULT_PREFIX = setup.DEFAULT_PREFIX
 
 
-def _options(prefix=default_prefix):
+def _options(prefix=DEFAULT_PREFIX):
     from py.path import local
     return str(local(prefix).join('build', 'etc', 'salt', 'minion'))
 
@@ -52,7 +51,7 @@ def _get_pillar(prefix, compiler, python, mpi):
 
 
 @cli.command(help="Run a given state, or all states if none given")
-@click.option('--prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.option('--prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 @click.option('--compiler', default=None, type=str, nargs=1,
               help="Compiler collection for spack modules")
 @click.option('--python', default=None, type=str, nargs=1,
@@ -69,7 +68,7 @@ def run(prefix, states, python, compiler, mpi, verbose):
 
 @cli.command(help="Make a call to salt")
 @click.argument('call', nargs=-1)
-@click.option('--prefix', default=default_prefix, type=click.Path())
+@click.option('--prefix', default=DEFAULT_PREFIX, type=click.Path())
 @click.option('--compiler', default=None, type=str, nargs=1,
               help="Compiler collection for spack modules")
 @click.option('--python', default=None, type=str, nargs=1,
@@ -83,7 +82,7 @@ def call(prefix, call, python, compiler, mpi):
 
 
 @cli.command(help="Make a raw call to salt")
-@click.option('--prefix', default=default_prefix, type=click.Path())
+@click.option('--prefix', default=DEFAULT_PREFIX, type=click.Path())
 @click.argument('call', nargs=-1)
 def rawcall(prefix, call):
     assert len(call) >= 1
@@ -92,7 +91,7 @@ def rawcall(prefix, call):
 
 @cli.command(help="Show a (the) given state(s) in yaml format")
 @click.argument('states', nargs=-1)
-@click.option('--prefix', default=default_prefix, type=click.Path())
+@click.option('--prefix', default=DEFAULT_PREFIX, type=click.Path())
 @click.option('--compiler', default=None, type=str, nargs=1,
               help="Compiler collection for spack modules")
 @click.option('--python', default=None, type=str, nargs=1,
@@ -106,7 +105,7 @@ def show(states, prefix, compiler, python, mpi):
 
 
 @cli.command(help="Update to latest CondimentStation")
-@click.argument('prefix', default=default_prefix, type=click.Path(), nargs=1)
+@click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def update(prefix):
     setup.run_command(prefix, 'state.apply',
                       'condiment_scripts', minimize=True)
