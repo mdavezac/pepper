@@ -15,6 +15,9 @@ if DEFAULT_PREFIX[0] == "{":
 
 
 def _options(prefix):
+    """
+    Return path where minion is setup
+    """
     from py.path import local
     return str(local(prefix).join('build', 'etc', 'salt', 'minion'))
 
@@ -67,11 +70,15 @@ def display_output(result, opts, minimize=True):
 
 
 def run_command(prefix, command, *states, **kwargs):
+    """
+    Execute command (also for multiple states) using the local
+    salt setup informing whether any of them has failed.
+    """
     import salt.client
     import salt.config
     minimize = kwargs.pop('minimize', True)
+    # Generate all the config using our set up on minion.
     __opts__ = salt.config.minion_config(str(_options(prefix)))
-    __opts__['file_client'] = 'local'
     # makes it possible to use password-protected ssh identity files
     __opts__['__cli'] = ('salt-call', )
     caller = salt.client.Caller(mopts=__opts__)
@@ -92,6 +99,25 @@ def run_command(prefix, command, *states, **kwargs):
 @cli.command(help="link modules and friends to prefix")
 @click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def server_hierarchy(prefix):
+    """
+    Creates the directories and symlinks needed for the rest of the setup.
+    It builds the following tree:
+
+    {{condiment_prefix}}/build
+    ├── srv
+    │   └── salt
+    │       ├── _grains  -> {{condiment_prefix}}/_grains
+    │       ├── _modules -> {{condiment_prefix}}/_modules
+    │       └── _states  -> {{condiment_prefix}}/_states
+    ├── etc
+    │   └── salt
+    └── var
+        ├── log
+        │   └── salt
+        └── cache
+            └── salt
+                └── master
+    """
     from py.path import local
     srv = local(prefix).join('build', 'srv', 'salt')
     srv.ensure(dir=True)
@@ -134,6 +160,9 @@ def syspath(prefix):
 @click.option('--user', envvar='USER', help="Default user")
 @click.option('--sudo_user', envvar='USER', help="Default sudo user")
 def minion(prefix, user, sudo_user):
+    """
+    Adds minnion configuration file.
+    """
     from py.path import local
     etc = local(prefix).join('build', 'etc', 'salt')
     etc.join('master').write(
@@ -160,6 +189,10 @@ def minion(prefix, user, sudo_user):
 @click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 @click.option('--user', envvar='USER', help="Default user")
 def pillar(prefix, user):
+    """
+    It generates salt.sls file under the black-garlic/pillar directory,
+    and makes sure that secrets.sls exists.
+    """
     from sys import executable
     from py.path import local
     directory = local(prefix).join('black-garlic', 'pillar')
@@ -197,6 +230,9 @@ def initial_states(prefix):
 @cli.command(help="Sync states and modules")
 @click.argument('prefix', default=DEFAULT_PREFIX, type=click.Path(), nargs=1)
 def sync(prefix):
+    """
+    Run `saltutil.sync_all` and run salt to provision the machine.
+    """
     run_command(prefix, 'saltutil.sync_all', minimize=False)
 
 
