@@ -163,13 +163,29 @@ def minion(prefix, user, sudo_user):
     """
     Adds minnion configuration file.
     """
+    import platform
     from py.path import local
+
+    # Guess package manager; NOTE This only works for linux/mac
+    pkg = ""
+    dists = {'yumpkg': '/etc/redhat-release',
+             'pacman': '/etc/arch-release',
+             'ebuild': '/etc/gentoo-release',
+             'zypper': '/etc/SuSE-release',
+             'aptpkg': '/etc/debian_version'}
+    if platform.system() == 'Linux':
+        for distro in dists:
+            if local(dists[distro]).exists():
+                pkg = distro
+    else:
+        pkg = "brew"
+
     etc = local(prefix).join('build', 'etc', 'salt')
     etc.join('master').write(
         'file_client: local\n'
         'user: {user}\n'
         'sudo_user: {sudo_user}\n'
-        'pkg: brew\n'
+        'pkg: {pkg}\n'
         'pillar_roots:\n'
         '  base:\n'
         '    - {prefix}/black-garlic/pillar\n'
@@ -179,7 +195,7 @@ def minion(prefix, user, sudo_user):
         '    - {prefix}/CondimentStation\n'
         '    - {prefix}/black-garlic/projects\n'
         '    - {prefix}/\n'
-        .format(prefix=prefix, user=user, sudo_user=sudo_user)
+        .format(prefix=prefix, user=user, sudo_user=sudo_user, pkg=pkg)
     )
     if not etc.join('minion').exists():
         etc.join('minion').mksymlinkto(etc.join('master'))
